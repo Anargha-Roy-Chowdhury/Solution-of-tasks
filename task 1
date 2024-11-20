@@ -1,0 +1,52 @@
+company_size = input_data['company_size']
+budget = input_data['budget']
+industry = input_data['industry']
+urgency = input_data['urgency']
+
+# Assign points based on form data
+points = 0
+
+# Company Size Points
+if company_size == "1-50":
+    points += 10
+elif company_size == "51-200":
+    points += 20
+elif company_size == "201-1000":
+    points += 30
+elif company_size == "1000+":
+    points += 40
+
+# Annual Budget Points
+if budget == "Less than $10,000":
+    points += 10
+elif budget == "$10,000 - $50,000":
+    points += 20
+elif budget == "$50,001 - $100,000":
+    points += 30
+elif budget == "More than $100,000":
+    points += 40
+
+# Industry Points
+if industry == "Technology":
+    points += 30
+elif industry == "Finance":
+    points += 25
+elif industry == "Healthcare":
+    points += 20
+elif industry == "Retail":
+    points += 15
+else:
+    points += 10
+
+# Urgency Points
+if urgency == "Immediate":
+    points += 40
+elif urgency == "Short-term":
+    points += 30
+elif urgency == "Medium-term":
+    points += 20
+else:
+    points += 10
+
+# Return the calculated score
+return {'score': points}
