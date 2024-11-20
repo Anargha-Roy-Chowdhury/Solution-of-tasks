@@ -1,0 +1,124 @@
+import google.auth
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+import os
+
+# Authenticate and create service
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = None
+
+if os.path.exists('token.json'):
+    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'credentials.json', SCOPES)
+        creds = flow.run_local_server(port=0)
+
+    with open('token.json', 'w') as token:
+        token.write(creds.to_json())
+
+service = build('sheets', 'v4', credentials=creds)
+
+# Assuming you have a sheet with the format: Lead ID, Name, Email, Comments, Assigned Sales Rep
+SPREADSHEET_ID = 'your_spreadsheet_id'
+RANGE = 'Sheet1!A2:E'  # Range of data
+
+# Function to get all leads and distribute them evenly
+def distribute_leads():
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE).execute()
+    values = result.get('values', [])
+
+    sales_reps = ['Rep1', 'Rep2', 'Rep3', 'Rep4']  # Example sales reps
+    rep_index = 0
+
+    for row in values:
+        if len(row) > 4 and row[4] == '':  # If 'Assigned Sales Rep' is empty
+            row[4] = sales_reps[rep_index]
+            rep_index = (rep_index + 1) % len(sales_reps)
+
+            # Update Google Sheet with the new assignment
+            update_range = f"Sheet1!E{values.index(row) + 2}"
+            sheet.values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=update_range,
+                valueInputOption="RAW",
+                body={"values": [[row[4]]]}
+            ).execute()
+
+distribute_leads()
+import re
+
+# Sample comment text
+comments = [
+    "Customer is looking for more information on AI and Machine Learning.",
+    "Interested in a software solution for financial management and analytics."
+]
+
+def extract_keywords(comments):
+    keywords = []
+    for comment in comments:
+        # Use a simple regex pattern to find keywords (e.g., nouns, technical terms)
+        matches = re.findall(r'\b\w+\b', comment)
+        keywords.append(list(set(matches)))  # Remove duplicates
+
+    return keywords
+
+# Example of extracting keywords from comments
+keywords = extract_keywords(comments)
+for idx, kw in enumerate(keywords):
+    print(f"Lead {idx+1} Keywords: {kw}")
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+import google.auth
+import datetime
+
+# Authenticate and create service
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+creds = None
+
+if os.path.exists('token.json'):
+    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'credentials.json', SCOPES)
+        creds = flow.run_local_server(port=0)
+
+    with open('token.json', 'w') as token:
+        token.write(creds.to_json())
+
+service = build('calendar', 'v3', credentials=creds)
+
+# Function to create a calendar event
+def create_follow_up_event(lead_name, follow_up_time):
+    event = {
+        'summary': f'Follow-up with {lead_name}',
+        'description': 'Lead follow-up scheduled.',
+        'start': {
+            'dateTime': follow_up_time.isoformat(),
+            'timeZone': 'America/New_York',
+        },
+        'end': {
+            'dateTime': (follow_up_time + datetime.timedelta(hours=1)).isoformat(),
+            'timeZone': 'America/New_York',
+        },
+        'reminders': {
+            'useDefault': True,
+        },
+    }
+
+    event = service.events().insert(calendarId='primary', body=event).execute()
+    print(f"Event created: {event.get('htmlLink')}")
+
+# Example of scheduling a follow-up 3 days later
+follow_up_time = datetime.datetime.now() + datetime.timedelta(days=3, hours=9)
+create_follow_up_event("John Doe", follow_up_time)
